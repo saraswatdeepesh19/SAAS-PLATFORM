@@ -1,0 +1,108 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            connect-timeout: ${GATEWAY_CONNECT_TIMEOUT_MS:1000}
+            response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:3s}
+          routes:
+            - id: auth-service
+              uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/auth/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: authService
+                    fallbackUri: forward:/fallback/auth
+                    statusCodes: 500,502,503,504
+            - id: device-service
+              uri: ${DEVICE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/devices/**,/sessions/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: deviceService
+                    fallbackUri: forward:/fallback/device
+                    statusCodes: 500,502,503,504
+            - id: usage-service
+              uri: ${USAGE_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/usage/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: usageService
+                    fallbackUri: forward:/fallback/usage
+                    statusCodes: 500,502,503,504
+            - id: billing-service
+              uri: ${BILLING_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/billing/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: billingService
+                    fallbackUri: forward:/fallback/billing
+                    statusCodes: 500,502,503,504
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:local-dev-only-change-this-secret-key-32chars}
+
+gateway:
+  rate-limit:
+    replenish-per-second: ${RATE_LIMIT_REPLENISH:20}
+    burst-capacity: ${RATE_LIMIT_BURST:40}
+
+resilience4j:
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 5s
+        cancel-running-future: true
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+        permitted-number-of-calls-in-half-open-state: 5
+        wait-duration-in-open-state: 10s
+        automatic-transition-from-open-to-half-open-enabled: true
+        register-health-indicator: true
+    instances:
+      authService:
+        base-config: default
+      deviceService:
+        base-config: default
+      usageService:
+        base-config: default
+      billingService:
+        base-config: default
+
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:unknown},%X{traceId:-},%X{spanId:-}]"

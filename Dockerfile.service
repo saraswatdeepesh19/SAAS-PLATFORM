@@ -1,0 +1,17 @@
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /workspace
+COPY . .
+ARG SERVICE_MODULE
+RUN mvn -pl ${SERVICE_MODULE} -am -DskipTests package
+
+FROM eclipse-temurin:21-jre
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 --create-home app
+WORKDIR /app
+ARG SERVICE_MODULE
+COPY --from=build --chown=app:app /workspace/${SERVICE_MODULE}/target/${SERVICE_MODULE}-0.1.0-SNAPSHOT.jar app.jar
+USER app
+ENV TZ=UTC
+ENTRYPOINT ["java", "-Duser.timezone=UTC", "-jar", "/app/app.jar"]
