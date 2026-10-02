@@ -2,6 +2,8 @@
 
 Java 21 / Spring Boot Maven monorepo for the multi-tenant usage and billing platform.
 
+For a code-linked architecture walkthrough and interview preparation, see [Technical Interview Guide](md/TECHNICAL_INTERVIEW_GUIDE.md).
+
 ## Stage 1 services
 
 - `common`: shared event, plan, role, topic, and JWT claim contracts
