@@ -18,6 +18,7 @@ public class BillingEventService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /** Initializes or refreshes a tenant's billing plan from its registration event. */
     @Transactional
     public void onTenantRegistered(TenantRegisteredEvent event) {
         if (insertProcessedEvent(event.eventId()) == 0) {
@@ -33,6 +34,7 @@ public class BillingEventService {
                 event.eventId(), event.tenantId(), event.planType());
     }
 
+    /** Stores the latest usage snapshot for a tenant and month for invoice calculation. */
     @Transactional
     public void onUsageAggregated(UsageAggregatedEvent event) {
         if (insertProcessedEvent(event.eventId()) == 0) {
@@ -48,6 +50,7 @@ public class BillingEventService {
                 event.eventId(), event.tenantId(), event.period(), event.totalSeconds());
     }
 
+    /** Claims an event ID once so Kafka redelivery cannot apply the same update twice. */
     private int insertProcessedEvent(UUID eventId) {
         return jdbcTemplate.update("INSERT INTO processed_events (event_id) VALUES (?) ON CONFLICT DO NOTHING", eventId);
     }

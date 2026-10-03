@@ -8,6 +8,7 @@ import java.util.TimeZone;
 @SpringBootApplication
 @EnableScheduling
 public class BillingServiceApplication {
+    /** Sets UTC and starts billing with scheduled invoice generation enabled. */
     public static void main(String[] args) {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         SpringApplication.run(BillingServiceApplication.class, args);

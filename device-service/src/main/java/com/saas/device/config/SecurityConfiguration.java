@@ -19,6 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfiguration {
+    /** Protects device and session APIs with stateless JWT auth and restricts device administration to admins. */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.disable())
@@ -34,6 +35,7 @@ public class SecurityConfiguration {
                 .build();
     }
 
+    /** Maps role values from the shared JWT claim directly to Spring authorities. */
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
@@ -44,6 +46,7 @@ public class SecurityConfiguration {
         return converter;
     }
 
+    /** Builds and validates the shared HS256 key so device-service can verify auth-service tokens. */
     @Bean
     SecretKey jwtSecretKey(@Value("${security.jwt.secret}") String secret) {
         byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
@@ -53,6 +56,7 @@ public class SecurityConfiguration {
         return new SecretKeySpec(bytes, "HmacSHA256");
     }
 
+    /** Restricts token decoding to the HS256 algorithm used by the issuer. */
     @Bean
     JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
         return NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();

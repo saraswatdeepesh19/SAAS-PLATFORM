@@ -25,27 +25,32 @@ public class InvoiceController {
         this.invoiceService = invoiceService;
     }
 
+    /** Creates an invoice for the authenticated tenant and returns HTTP 201 for the new resource. */
     @PostMapping("/invoices/generate")
     public ResponseEntity<InvoiceResponse> generate(
             @RequestParam("period") String period, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.status(HttpStatus.CREATED).body(invoiceService.generate(tenantId(jwt), period));
     }
 
+    /** Lists only the authenticated tenant's invoices to preserve tenant isolation. */
     @GetMapping("/invoices")
     public List<InvoiceResponse> list(@AuthenticationPrincipal Jwt jwt) {
         return invoiceService.list(tenantId(jwt));
     }
 
+    /** Fetches one invoice within the caller's tenant rather than by global ID alone. */
     @GetMapping("/invoices/{invoiceId}")
     public InvoiceResponse get(@PathVariable("invoiceId") UUID invoiceId, @AuthenticationPrincipal Jwt jwt) {
         return invoiceService.get(tenantId(jwt), invoiceId);
     }
 
+    /** Returns the billing plan used to calculate invoices for the authenticated tenant. */
     @GetMapping("/plan")
     public TenantPlanResponse plan(@AuthenticationPrincipal Jwt jwt) {
         return invoiceService.getPlan(tenantId(jwt));
     }
 
+    /** Reads tenant scope from the verified token so clients cannot select another tenant. */
     private UUID tenantId(Jwt jwt) {
         return UUID.fromString(jwt.getClaimAsString("tenantId"));
     }

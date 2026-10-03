@@ -6,6 +6,7 @@ import java.util.TimeZone;
 
 @SpringBootApplication
 public class NotificationServiceApplication {
+    /** Sets UTC before starting notification processing for consistent event timestamps. */
     public static void main(String[] args) {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         SpringApplication.run(NotificationServiceApplication.class, args);

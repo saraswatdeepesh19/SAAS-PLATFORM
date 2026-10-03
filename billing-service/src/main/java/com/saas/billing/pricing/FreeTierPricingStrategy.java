@@ -10,11 +10,13 @@ import org.springframework.stereotype.Component;
 public class FreeTierPricingStrategy implements PricingStrategy {
     private static final BigDecimal RATE = new BigDecimal("3.00");
 
+    /** Returns the plan handled here so the factory can select this strategy. */
     @Override
     public PlanType supports() {
         return PlanType.FREE_TIER;
     }
 
+    /** Charges only usage beyond the free allowance, keeping the included minutes non-billable. */
     @Override
     public PricingResult calculate(long usageMinutes) {
         long billableMinutes = Math.max(0, usageMinutes - 100);

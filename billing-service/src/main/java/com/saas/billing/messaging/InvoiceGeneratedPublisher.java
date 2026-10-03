@@ -18,6 +18,7 @@ public class InvoiceGeneratedPublisher {
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    /** Publishes invoices only after persistence commits so consumers never observe rolled-back invoices. */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void publish(InvoiceGeneratedEvent event) {
         kafkaTemplate.send(Topics.INVOICE_EVENTS, event.tenantId().toString(), event)

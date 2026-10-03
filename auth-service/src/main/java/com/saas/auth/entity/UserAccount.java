@@ -42,6 +42,7 @@ public class UserAccount {
     protected UserAccount() {
     }
 
+    /** Creates an enabled account associated with one tenant and an already-encoded password. */
     public UserAccount(UUID id, TenantEntity tenant, String email, String passwordHash, Role role, Instant createdAt) {
         this.id = id;
         this.tenant = tenant;
@@ -52,26 +53,32 @@ public class UserAccount {
         this.createdAt = createdAt;
     }
 
+    /** Returns the account identifier used as the JWT subject. */
     public UUID getId() {
         return id;
     }
 
+    /** Returns the owning tenant for authorization and tenant-scoped queries. */
     public TenantEntity getTenant() {
         return tenant;
     }
 
+    /** Returns the normalized login email address. */
     public String getEmail() {
         return email;
     }
 
+    /** Returns the stored hash so authentication can verify a password without storing plaintext. */
     public String getPasswordHash() {
         return passwordHash;
     }
 
+    /** Returns the role copied into tokens for downstream authorization. */
     public Role getRole() {
         return role;
     }
 
+    /** Indicates whether login is allowed for this account. */
     public boolean isEnabled() {
         return enabled;
     }

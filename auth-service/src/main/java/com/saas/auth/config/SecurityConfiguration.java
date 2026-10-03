@@ -24,6 +24,10 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 @Configuration
 public class SecurityConfiguration {
+    /**
+     * Defines stateless API authorization and the small set of public endpoints.
+     * Bearer JWTs replace cookie sessions here, so CSRF, HTTP Basic, and form login are disabled.
+     */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -40,6 +44,10 @@ public class SecurityConfiguration {
                 .build();
     }
 
+    /**
+     * Maps the token's roles claim to Spring authorities without changing role names.
+     * The auth service already issues ROLE_ prefixed values, so an additional prefix would be incorrect.
+     */
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
@@ -50,11 +58,19 @@ public class SecurityConfiguration {
         return converter;
     }
 
+    /**
+     * Provides BCrypt for hashing passwords and checking login attempts.
+     * BCrypt stores a salted, deliberately expensive hash instead of recoverable plaintext passwords.
+     */
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Builds the shared HMAC key from configuration and rejects secrets shorter than 32 bytes.
+     * A strong shared key is required because the auth service signs tokens with HS256.
+     */
     @Bean
     SecretKey jwtSecretKey(@Value("${security.jwt.secret}") String secret) {
         byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
@@ -64,11 +80,19 @@ public class SecurityConfiguration {
         return new SecretKeySpec(secretBytes, "HmacSHA256");
     }
 
+    /**
+     * Creates the JWT encoder used to sign access tokens with the configured shared key.
+     * Sharing the key lets trusted services verify tokens without asking auth to introspect each request.
+     */
     @Bean
     JwtEncoder jwtEncoder(SecretKey jwtSecretKey) {
         return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSecretKey));
     }
 
+    /**
+     * Creates a decoder that verifies tokens using the shared key and HS256 only.
+     * Restricting the accepted algorithm to the issuer's algorithm avoids accepting unintended token formats.
+     */
     @Bean
     JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
         return NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();

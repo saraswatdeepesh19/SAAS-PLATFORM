@@ -29,7 +29,11 @@ public class UsageProcessingService {
         this.eventPublisher = eventPublisher;
     }
 
-    @Transactional
+        /**
+         * Records a completed session, updates monthly totals, and emits the new aggregate.
+         * The processed-event insert makes retries idempotent so Kafka redelivery cannot double-count usage.
+         */
+        @Transactional
     public void process(SessionEndedEvent event) {
         validate(event);
         int inserted = jdbcTemplate.update(
@@ -62,7 +66,8 @@ public class UsageProcessingService {
                 event.eventId(), event.sessionId(), event.tenantId(), period, totals[0], totals[1]);
     }
 
-    public void validate(SessionEndedEvent event) {
+        /** Rejects incomplete or chronologically invalid events before they can corrupt usage totals. */
+        public void validate(SessionEndedEvent event) {
         if (event == null || event.eventId() == null || event.tenantId() == null || event.deviceId() == null
                 || event.sessionId() == null || event.startedAt() == null || event.endedAt() == null
                 || event.durationSec() < 0 || event.endedAt().isBefore(event.startedAt())) {

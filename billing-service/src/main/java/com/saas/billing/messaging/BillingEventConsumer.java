@@ -15,11 +15,13 @@ public class BillingEventConsumer {
         this.billingEventService = billingEventService;
     }
 
+    /** Hands tenant registration events to the billing service to initialize plan state. */
     @KafkaListener(topics = Topics.TENANT_EVENTS, groupId = "billing-group")
     public void onTenantRegistered(TenantRegisteredEvent event) {
         billingEventService.onTenantRegistered(event);
     }
 
+    /** Hands usage totals to billing so monthly snapshots stay current for invoicing. */
     @KafkaListener(topics = Topics.USAGE_AGGREGATED, groupId = "billing-group")
     public void onUsageAggregated(UsageAggregatedEvent event) {
         billingEventService.onUsageAggregated(event);

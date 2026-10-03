@@ -9,11 +9,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class TieredPricingStrategy implements PricingStrategy {
+    /** Returns the plan handled here so the factory can select this strategy. */
     @Override
     public PlanType supports() {
         return PlanType.TIERED;
     }
 
+    /** Calculates marginal charges across all usage bands and returns each band as an invoice line. */
     @Override
     public PricingResult calculate(long usageMinutes) {
         List<PricingLine> lines = new ArrayList<>();
@@ -26,6 +28,7 @@ public class TieredPricingStrategy implements PricingStrategy {
         return new PricingResult(List.copyOf(lines), total);
     }
 
+    /** Adds a rounded charge line for one usage band so each tier remains auditable on the invoice. */
     private void addTier(List<PricingLine> lines, long quantity, BigDecimal rate, String description) {
         BigDecimal amount = BigDecimal.valueOf(quantity).multiply(rate).setScale(2, RoundingMode.HALF_UP);
         lines.add(new PricingLine(description, BigDecimal.valueOf(quantity), rate, amount));

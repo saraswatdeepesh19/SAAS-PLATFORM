@@ -19,6 +19,10 @@ public class TraceIdGlobalFilter implements GlobalFilter, Ordered {
     private static final Pattern VALID_TRACEPARENT =
             Pattern.compile("^[0-9a-f]{2}-([0-9a-f]{32})-[0-9a-f]{16}-[0-9a-f]{2}$");
 
+    /**
+     * Reuses a valid incoming trace ID or creates one, then forwards and returns it with the request.
+     * Propagating one identifier across services makes a distributed request easier to trace in logs.
+     */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String traceParent = exchange.getRequest().getHeaders().getFirst("traceparent");
@@ -39,6 +43,10 @@ public class TraceIdGlobalFilter implements GlobalFilter, Ordered {
         return chain.filter(exchange.mutate().request(request).build());
     }
 
+    /**
+     * Runs before other gateway filters so downstream processing receives the trace ID.
+     * Highest precedence makes the identifier available throughout the request lifecycle.
+     */
     @Override
     public int getOrder() {
         return Ordered.HIGHEST_PRECEDENCE;

@@ -29,22 +29,26 @@ public class DeviceController {
         this.deviceService = deviceService;
     }
 
+    /** Creates a device for the tenant in the caller's verified JWT and returns HTTP 201. */
     @PostMapping
     public ResponseEntity<DeviceResponse> create(
             @Valid @RequestBody CreateDeviceRequest request, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.status(HttpStatus.CREATED).body(deviceService.create(tenantId(jwt), request));
     }
 
+    /** Lists the caller tenant's non-retired devices without accepting tenant IDs from the request. */
     @GetMapping
     public List<DeviceResponse> list(@AuthenticationPrincipal Jwt jwt) {
         return deviceService.list(tenantId(jwt));
     }
 
+    /** Fetches a device within the authenticated tenant to prevent cross-tenant access by ID. */
     @GetMapping("/{deviceId}")
     public DeviceResponse get(@PathVariable("deviceId") UUID deviceId, @AuthenticationPrincipal Jwt jwt) {
         return deviceService.get(tenantId(jwt), deviceId);
     }
 
+    /** Updates a device in the authenticated tenant; the service rejects changes to devices in use. */
     @PutMapping("/{deviceId}")
     public DeviceResponse update(
             @PathVariable("deviceId") UUID deviceId,
@@ -53,12 +57,14 @@ public class DeviceController {
         return deviceService.update(tenantId(jwt), deviceId, request);
     }
 
+    /** Retires instead of deleting a device so historical sessions can still reference it. */
     @DeleteMapping("/{deviceId}")
     public ResponseEntity<Void> retire(@PathVariable("deviceId") UUID deviceId, @AuthenticationPrincipal Jwt jwt) {
         deviceService.retire(tenantId(jwt), deviceId);
         return ResponseEntity.noContent().build();
     }
 
+    /** Extracts tenant scope from the verified token so clients cannot spoof another tenant. */
     private UUID tenantId(Jwt jwt) {
         return UUID.fromString(jwt.getClaimAsString("tenantId"));
     }

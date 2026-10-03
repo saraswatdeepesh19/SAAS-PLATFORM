@@ -50,6 +50,10 @@ public class AuthService {
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * Creates a tenant, its first administrator, and a registration event in one transaction.
+     * Atomic persistence prevents a partially initialized tenant; publishing after commit avoids announcing rolled-back data.
+     */
     @Transactional
     public TenantResponse registerTenant(RegisterTenantRequest request) {
         String tenantName = request.tenantName().trim();
@@ -75,6 +79,10 @@ public class AuthService {
         return new TenantResponse(tenant.getId(), tenant.getName(), admin.getId());
     }
 
+    /**
+     * Validates a user's enabled status and password, then issues a bearer token.
+     * A read-only transaction is sufficient because authentication must not mutate account data.
+     */
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         UserAccount user = userRepository.findByEmail(normalizeEmail(request.email()))
@@ -86,6 +94,10 @@ public class AuthService {
         return new LoginResponse(jwtService.generateToken(user), "Bearer", jwtService.getExpirationSeconds());
     }
 
+    /**
+     * Adds a user to the specified tenant after checking email uniqueness and tenant existence.
+     * The transaction keeps the lookup and insert consistent while the password is stored only as a hash.
+     */
     @Transactional
     public UserResponse createUser(UUID tenantId, CreateUserRequest request) {
         String email = normalizeEmail(request.email());
@@ -100,6 +112,10 @@ public class AuthService {
         return toUserResponse(user);
     }
 
+    /**
+     * Looks up a user only when the supplied tenant matches the user's tenant.
+     * This check prevents a valid user ID from being used across tenant boundaries.
+     */
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser(UUID userId, UUID tenantId) {
         UserAccount user = userRepository.findById(userId)
@@ -108,10 +124,18 @@ public class AuthService {
         return toUserResponse(user);
     }
 
+    /**
+     * Converts the persistence entity to the public user response shape.
+     * Keeping this mapping explicit prevents internal fields such as password hashes from reaching API clients.
+     */
     private UserResponse toUserResponse(UserAccount user) {
         return new UserResponse(user.getId(), user.getTenant().getId(), user.getEmail(), user.getRole());
     }
 
+    /**
+     * Trims and lowercases email addresses using a locale-independent rule.
+     * Normalization makes registration and login comparisons consistent regardless of input casing or server locale.
+     */
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }

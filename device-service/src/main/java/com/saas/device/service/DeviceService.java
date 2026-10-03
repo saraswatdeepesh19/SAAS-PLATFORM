@@ -25,6 +25,7 @@ public class DeviceService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /** Persists a new tenant-owned device and reloads it through the common response mapping. */
     @Transactional
     public DeviceResponse create(UUID tenantId, CreateDeviceRequest request) {
         UUID id = UUID.randomUUID();
@@ -35,6 +36,7 @@ public class DeviceService {
         return get(tenantId, id);
     }
 
+    /** Lists non-retired devices for one tenant, keeping retired inventory out of active views. */
     @Transactional(readOnly = true)
     public List<DeviceResponse> list(UUID tenantId) {
         return jdbcTemplate.query(
@@ -42,6 +44,7 @@ public class DeviceService {
                 this::mapDevice, tenantId);
     }
 
+    /** Looks up a device by both IDs so possession of a device UUID does not bypass tenant isolation. */
     @Transactional(readOnly = true)
     public DeviceResponse get(UUID tenantId, UUID deviceId) {
         return jdbcTemplate.query("SELECT * FROM devices WHERE id = ? AND tenant_id = ? AND status <> 'RETIRED'",
@@ -49,6 +52,7 @@ public class DeviceService {
                 .stream().findFirst().orElseThrow(() -> notFound("Device not found"));
     }
 
+    /** Updates only available/offline devices and increments the version for state tracking. */
     @Transactional
     public DeviceResponse update(UUID tenantId, UUID deviceId, UpdateDeviceRequest request) {
         int updated = jdbcTemplate.update(
@@ -63,6 +67,7 @@ public class DeviceService {
         return get(tenantId, deviceId);
     }
 
+    /** Soft-retires an idle device so existing session history remains referentially valid. */
     @Transactional
     public void retire(UUID tenantId, UUID deviceId) {
         int updated = jdbcTemplate.update(
@@ -76,6 +81,7 @@ public class DeviceService {
         logger.info("Device retired deviceId={} tenantId={}", deviceId, tenantId);
     }
 
+    /** Distinguishes a missing or foreign-tenant device from a valid device in a disallowed state. */
     private void ensureDeviceExists(UUID tenantId, UUID deviceId) {
         Boolean exists = jdbcTemplate.queryForObject(
                 "SELECT EXISTS (SELECT 1 FROM devices WHERE id = ? AND tenant_id = ? AND status <> 'RETIRED')",
@@ -85,6 +91,7 @@ public class DeviceService {
         }
     }
 
+    /** Maps a database row into the API response without exposing persistence details. */
     private DeviceResponse mapDevice(ResultSet resultSet, int row) throws SQLException {
         return new DeviceResponse(
                 resultSet.getObject("id", UUID.class), resultSet.getObject("tenant_id", UUID.class),
@@ -93,6 +100,7 @@ public class DeviceService {
                 resultSet.getTimestamp("created_at").toInstant());
     }
 
+    /** Creates a consistent HTTP 404 error for devices hidden by tenant or lifecycle scoping. */
     private ResponseStatusException notFound(String message) {
         return new ResponseStatusException(HttpStatus.NOT_FOUND, message);
     }

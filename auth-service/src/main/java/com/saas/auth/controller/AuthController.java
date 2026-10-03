@@ -29,16 +29,28 @@ public class AuthController {
         this.authService = authService;
     }
 
+    /**
+     * Registers a tenant and its initial administrator, returning the created resource.
+     * HTTP 201 communicates that registration created new tenant and user records.
+     */
     @PostMapping("/register-tenant")
     public ResponseEntity<TenantResponse> registerTenant(@Valid @RequestBody RegisterTenantRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerTenant(request));
     }
 
+    /**
+     * Authenticates the supplied credentials and returns the resulting access token.
+     * Keeping credential checks in the service separates HTTP handling from authentication rules.
+     */
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
     }
 
+    /**
+     * Creates a user inside the tenant identified by the authenticated JWT.
+     * Deriving tenant scope from the token prevents callers from choosing another tenant in the request body.
+     */
     @PostMapping("/users")
     public ResponseEntity<UserResponse> createUser(
             @Valid @RequestBody CreateUserRequest request, @AuthenticationPrincipal Jwt jwt) {
@@ -46,6 +58,10 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.createUser(tenantId, request));
     }
 
+    /**
+     * Returns the authenticated user's profile within their token's tenant.
+     * Using both token claims keeps the lookup scoped to the caller's own account and tenant.
+     */
     @GetMapping("/me")
     public UserResponse currentUser(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());

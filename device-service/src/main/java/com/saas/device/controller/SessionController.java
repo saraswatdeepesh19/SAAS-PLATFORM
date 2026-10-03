@@ -23,6 +23,7 @@ public class SessionController {
         this.sessionService = sessionService;
     }
 
+    /** Starts a session for the current user and tenant, returning HTTP 201 for the new session. */
     @PostMapping("/devices/{deviceId}/sessions/start")
     public ResponseEntity<SessionResponse> start(
             @PathVariable("deviceId") UUID deviceId, @AuthenticationPrincipal Jwt jwt) {
@@ -30,11 +31,13 @@ public class SessionController {
                 UUID.fromString(jwt.getClaimAsString("tenantId")), UUID.fromString(jwt.getSubject()), deviceId));
     }
 
+    /** Ends a session only within the authenticated tenant's scope. */
     @PostMapping("/sessions/{sessionId}/end")
     public SessionResponse end(@PathVariable("sessionId") UUID sessionId, @AuthenticationPrincipal Jwt jwt) {
         return sessionService.end(UUID.fromString(jwt.getClaimAsString("tenantId")), sessionId);
     }
 
+    /** Lists session history for the authenticated tenant. */
     @GetMapping("/sessions")
     public List<SessionResponse> list(@AuthenticationPrincipal Jwt jwt) {
         return sessionService.list(UUID.fromString(jwt.getClaimAsString("tenantId")));

@@ -11,11 +11,13 @@ public class FlatRatePricingStrategy implements PricingStrategy {
     private static final BigDecimal MONTHLY_FEE = new BigDecimal("999.00");
     private static final BigDecimal OVERAGE_RATE = new BigDecimal("2.00");
 
+    /** Returns the plan handled here so the factory can select this strategy. */
     @Override
     public PlanType supports() {
         return PlanType.FLAT_RATE;
     }
 
+    /** Applies the monthly fee plus any overage beyond the included allowance. */
     @Override
     public PricingResult calculate(long usageMinutes) {
         long overageMinutes = Math.max(0, usageMinutes - 1000);

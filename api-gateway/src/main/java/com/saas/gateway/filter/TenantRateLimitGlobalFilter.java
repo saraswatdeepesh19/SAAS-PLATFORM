@@ -29,6 +29,10 @@ public class TenantRateLimitGlobalFilter implements GlobalFilter, Ordered {
         this.burstCapacity = burstCapacity;
     }
 
+    /**
+     * Applies a separate token bucket to each authenticated tenant.
+     * Per-tenant buckets prevent one customer's traffic from consuming another tenant's allowance.
+     */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         return exchange.getPrincipal().ofType(JwtAuthenticationToken.class)
@@ -52,6 +56,10 @@ public class TenantRateLimitGlobalFilter implements GlobalFilter, Ordered {
                 .flatMap(next -> next);
     }
 
+    /**
+     * Runs rate limiting after authentication has populated the principal.
+     * The filter needs the verified JWT to identify the tenant before forwarding requests.
+     */
     @Override
     public int getOrder() {
         return Ordered.HIGHEST_PRECEDENCE + 1;
@@ -70,6 +78,10 @@ public class TenantRateLimitGlobalFilter implements GlobalFilter, Ordered {
             this.lastRefillNanos = System.nanoTime();
         }
 
+        /**
+         * Refills tokens according to elapsed time and accepts one request if a token is available.
+         * Synchronization prevents concurrent requests from spending the same token twice.
+         */
         private synchronized boolean tryConsume() {
             long now = System.nanoTime();
             double elapsedSeconds = (now - lastRefillNanos) / 1_000_000_000.0;

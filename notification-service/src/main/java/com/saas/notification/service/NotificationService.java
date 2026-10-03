@@ -25,6 +25,10 @@ public class NotificationService {
         this.mailFrom = mailFrom;
     }
 
+    /**
+     * Deduplicates invoice notifications, sends the email, and records delivery status.
+     * Keeping FAILED status on delivery exceptions allows Kafka retries to retry delivery without losing the log.
+     */
     @Transactional(noRollbackFor = NotificationDeliveryException.class)
     public void notify(InvoiceGeneratedEvent event) {
         String subject = "Invoice " + event.invoiceNumber() + " for " + event.period();
@@ -57,6 +61,7 @@ public class NotificationService {
         }
     }
 
+    /** Bounds stored provider error text to fit the notification log column. */
     private String truncate(String message) {
         if (message == null) {
             return "Email delivery failed";

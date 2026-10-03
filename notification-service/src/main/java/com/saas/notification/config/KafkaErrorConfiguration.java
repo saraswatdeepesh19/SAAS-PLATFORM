@@ -11,6 +11,7 @@ import org.springframework.util.backoff.ExponentialBackOff;
 
 @Configuration
 public class KafkaErrorConfiguration {
+    /** Retries transient consumer failures with backoff, then publishes exhausted records to a dead-letter topic. */
     @Bean
     CommonErrorHandler kafkaErrorHandler(KafkaTemplate<String, Object> kafkaTemplate) {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(

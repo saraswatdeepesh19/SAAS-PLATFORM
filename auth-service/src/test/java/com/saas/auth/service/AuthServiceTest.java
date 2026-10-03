@@ -45,11 +45,13 @@ class AuthServiceTest {
 
     private AuthService authService;
 
+    /** Builds the service with isolated mocks so each test controls its dependencies. */
     @BeforeEach
     void setUp() {
         authService = new AuthService(tenantRepository, userRepository, passwordEncoder, jwtService, eventPublisher);
     }
 
+    /** Verifies successful registration stores an admin and publishes the matching tenant event. */
     @Test
     void registerTenantCreatesAdminAndPublishesTenantEvent() {
         when(tenantRepository.existsByNameIgnoreCase("Acme")).thenReturn(false);
@@ -69,6 +71,7 @@ class AuthServiceTest {
         verify(userRepository).save(any(UserAccount.class));
     }
 
+    /** Verifies duplicate tenant names fail before any persistence or event side effect occurs. */
     @Test
     void registerTenantRejectsDuplicateTenantNameBeforeWriting() {
         when(tenantRepository.existsByNameIgnoreCase("Acme")).thenReturn(true);

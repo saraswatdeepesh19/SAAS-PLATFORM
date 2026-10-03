@@ -16,6 +16,7 @@ public class InvoiceScheduler {
         this.invoiceService = invoiceService;
     }
 
+    /** Generates the prior UTC calendar month's invoice for every billing tenant. */
     @Scheduled(cron = "${billing.invoice-cron}")
     public void generatePreviousMonthInvoices() {
         String period = YearMonth.now(ZoneOffset.UTC).minusMonths(1).toString();

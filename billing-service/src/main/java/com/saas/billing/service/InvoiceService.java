@@ -43,7 +43,11 @@ public class InvoiceService {
         this.eventPublisher = eventPublisher;
     }
 
-    @Transactional
+        /**
+         * Generates and persists an invoice from the tenant's monthly usage and current plan.
+         * The transaction keeps invoice lines and totals atomic, while the existing-invoice check makes retries idempotent.
+         */
+        @Transactional
     public InvoiceResponse generate(UUID tenantId, String period) {
         validatePeriod(period);
         InvoiceResponse existing = findInvoice(tenantId, period);
@@ -80,14 +84,16 @@ public class InvoiceService {
         return findInvoice(tenantId, period);
     }
 
-    @Transactional(readOnly = true)
+        /** Lists a tenant's invoices newest period first for billing history views. */
+        @Transactional(readOnly = true)
     public List<InvoiceResponse> list(UUID tenantId) {
         return jdbcTemplate.query("SELECT * FROM invoices WHERE tenant_id = ? ORDER BY period DESC",
                         (resultSet, row) -> mapInvoiceRow(resultSet), tenantId)
                 .stream().map(this::toResponse).toList();
     }
 
-    @Transactional(readOnly = true)
+        /** Retrieves an invoice only within the requested tenant to prevent cross-tenant disclosure. */
+        @Transactional(readOnly = true)
     public InvoiceResponse get(UUID tenantId, UUID invoiceId) {
         InvoiceRow row = jdbcTemplate.query("SELECT * FROM invoices WHERE tenant_id = ? AND id = ?",
                         (resultSet, rowNum) -> mapInvoiceRow(resultSet), tenantId, invoiceId)
@@ -95,7 +101,8 @@ public class InvoiceService {
         return toResponse(row);
     }
 
-    @Transactional(readOnly = true)
+        /** Loads the tenant plan and billing contact used for pricing and invoice delivery. */
+        @Transactional(readOnly = true)
     public TenantPlanResponse getPlan(UUID tenantId) {
         return jdbcTemplate.query(
                         "SELECT tenant_id, tenant_name, billing_email, plan_type, currency FROM tenant_plans WHERE tenant_id = ?",
@@ -108,25 +115,29 @@ public class InvoiceService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Billing plan not found"));
     }
 
-    @Transactional(readOnly = true)
+        /** Returns tenants with billing plans so the scheduled job can generate their invoices. */
+        @Transactional(readOnly = true)
     public List<UUID> tenantIds() {
         return jdbcTemplate.query("SELECT tenant_id FROM tenant_plans", (resultSet, row) -> resultSet.getObject(1, UUID.class));
     }
 
-    private InvoiceResponse findInvoice(UUID tenantId, String period) {
+        /** Finds an invoice by tenant and period, returning null when generation has not happened yet. */
+        private InvoiceResponse findInvoice(UUID tenantId, String period) {
         return jdbcTemplate.query("SELECT * FROM invoices WHERE tenant_id = ? AND period = ?",
                         (resultSet, row) -> mapInvoiceRow(resultSet), tenantId, period)
                 .stream().findFirst().map(this::toResponse).orElse(null);
     }
 
-    private InvoiceRow mapInvoiceRow(ResultSet resultSet) throws SQLException {
+        /** Converts a JDBC row into the internal immutable representation used by response mapping. */
+        private InvoiceRow mapInvoiceRow(ResultSet resultSet) throws SQLException {
         return new InvoiceRow(resultSet.getObject("id", UUID.class), resultSet.getObject("tenant_id", UUID.class),
                 resultSet.getString("invoice_number"), resultSet.getString("period").trim(),
                 resultSet.getBigDecimal("total_amount"), resultSet.getString("currency").trim(),
                 resultSet.getString("status"), resultSet.getTimestamp("created_at").toInstant());
     }
 
-    private InvoiceResponse toResponse(InvoiceRow row) {
+        /** Loads invoice lines and assembles the API response from the invoice row. */
+        private InvoiceResponse toResponse(InvoiceRow row) {
         List<InvoiceLineResponse> lines = jdbcTemplate.query(
                 "SELECT description, quantity, unit_price, amount FROM invoice_lines WHERE invoice_id = ? ORDER BY id",
                 (resultSet, rowNum) -> new InvoiceLineResponse(
@@ -136,7 +147,8 @@ public class InvoiceService {
                 row.currency(), row.status(), row.createdAt(), lines);
     }
 
-    private void validatePeriod(String period) {
+        /** Rejects malformed invoice periods before querying or writing billing data. */
+        private void validatePeriod(String period) {
         try {
             YearMonth.parse(period);
         } catch (RuntimeException exception) {
@@ -144,6 +156,7 @@ public class InvoiceService {
         }
     }
 
+    /** Internal immutable JDBC projection kept separate from the public API response model. */
     private record InvoiceRow(
             UUID id, UUID tenantId, String invoiceNumber, String period, BigDecimal totalAmount,
             String currency, String status, Instant createdAt) {

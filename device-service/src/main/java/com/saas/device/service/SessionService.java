@@ -40,7 +40,11 @@ public class SessionService {
                 this.propagator = propagator;
     }
 
-    @Transactional
+        /**
+         * Reserves an available device and creates its active session atomically.
+         * Updating the device first prevents concurrent starts from assigning it to multiple users.
+         */
+        @Transactional
     public SessionResponse start(UUID tenantId, UUID userId, UUID deviceId) {
         int updated = jdbcTemplate.update(
                 "UPDATE devices SET status = 'IN_USE', version = version + 1 "
@@ -62,7 +66,11 @@ public class SessionService {
         return new SessionResponse(sessionId, deviceId, "ACTIVE", startedAt, null, null);
     }
 
-    @Transactional
+        /**
+         * Ends an active session, releases its device, and records a usage event in the outbox.
+         * One transaction keeps these state changes consistent and allows reliable asynchronous delivery.
+         */
+        @Transactional
     public SessionResponse end(UUID tenantId, UUID sessionId) {
         List<SessionRow> sessions = jdbcTemplate.query(
                 "SELECT id, device_id, user_id, status, started_at FROM device_sessions "
@@ -106,7 +114,8 @@ public class SessionService {
         return new SessionResponse(sessionId, session.deviceId(), "ENDED", session.startedAt(), endedAt, durationSeconds);
     }
 
-    @Transactional(readOnly = true)
+        /** Lists tenant-scoped session history newest first for the session view. */
+        @Transactional(readOnly = true)
     public List<SessionResponse> list(UUID tenantId) {
         return jdbcTemplate.query(
                 "SELECT id, device_id, status, started_at, ended_at, duration_sec "
@@ -119,14 +128,16 @@ public class SessionService {
                 tenantId);
     }
 
-    private SessionRow mapSession(ResultSet resultSet, int row) throws SQLException {
+        /** Converts the locked database row into the internal session state used during completion. */
+        private SessionRow mapSession(ResultSet resultSet, int row) throws SQLException {
         return new SessionRow(
                 resultSet.getObject("id", UUID.class), resultSet.getObject("device_id", UUID.class),
                 resultSet.getObject("user_id", UUID.class), resultSet.getString("status"),
                 resultSet.getTimestamp("started_at").toInstant());
     }
 
-    private void ensureDeviceExists(UUID tenantId, UUID deviceId) {
+        /** Ensures a failed reservation was not caused by a missing or foreign-tenant device. */
+        private void ensureDeviceExists(UUID tenantId, UUID deviceId) {
         Boolean exists = jdbcTemplate.queryForObject(
                 "SELECT EXISTS (SELECT 1 FROM devices WHERE id = ? AND tenant_id = ? AND status <> 'RETIRED')",
                 Boolean.class, deviceId, tenantId);
@@ -135,6 +146,7 @@ public class SessionService {
         }
     }
 
-    private record SessionRow(UUID id, UUID deviceId, UUID userId, String status, Instant startedAt) {
+        /** Holds only the session fields required to validate and complete a locked session. */
+        private record SessionRow(UUID id, UUID deviceId, UUID userId, String status, Instant startedAt) {
     }
 }

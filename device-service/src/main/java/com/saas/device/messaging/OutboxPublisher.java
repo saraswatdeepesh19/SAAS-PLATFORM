@@ -48,6 +48,7 @@ public class OutboxPublisher {
         this.batchSize = batchSize;
     }
 
+    /** Polls the transactional outbox so committed session events are eventually sent to Kafka. */
     @Scheduled(fixedDelayString = "${device.outbox.poll-interval-ms}")
     public void publishPending() {
         try {
@@ -57,6 +58,7 @@ public class OutboxPublisher {
         }
     }
 
+    /** Locks a bounded batch, publishes each event, and marks successful sends as complete. */
     private void publishBatch() {
         List<OutboxRow> events = jdbcTemplate.query(
                 "SELECT id, topic, event_key, payload::text AS payload, traceparent FROM outbox_events "
@@ -97,6 +99,7 @@ public class OutboxPublisher {
         }
     }
 
+    /** Internal projection of the outbox columns needed to publish and trace one event. */
     private record OutboxRow(UUID id, String topic, String eventKey, String payload, String traceparent) {
     }
 }

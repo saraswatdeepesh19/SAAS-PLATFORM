@@ -24,6 +24,10 @@ public class JwtService {
         this.expirationSeconds = expirationSeconds;
     }
 
+    /**
+     * Signs a token containing the user's identity, tenant, role, and configured expiration.
+     * These claims let downstream services authenticate and enforce tenant/role boundaries locally.
+     */
     public String generateToken(UserAccount user) {
         Instant issuedAt = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
@@ -38,6 +42,10 @@ public class JwtService {
         return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
     }
 
+    /**
+     * Exposes the configured token lifetime for login responses.
+     * Returning the same setting used during token creation keeps clients' expiry expectations accurate.
+     */
     public long getExpirationSeconds() {
         return expirationSeconds;
     }

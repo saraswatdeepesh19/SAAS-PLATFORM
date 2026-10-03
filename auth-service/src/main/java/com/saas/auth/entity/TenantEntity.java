@@ -32,6 +32,7 @@ public class TenantEntity {
     protected TenantEntity() {
     }
 
+    /** Initializes a new persisted tenant and marks it active by default. */
     public TenantEntity(UUID id, String name, PlanType planType, Instant createdAt) {
         this.id = id;
         this.name = name;
@@ -40,22 +41,27 @@ public class TenantEntity {
         this.createdAt = createdAt;
     }
 
+    /** Returns the stable identifier used to scope this tenant's data. */
     public UUID getId() {
         return id;
     }
 
+    /** Returns the display name persisted for this tenant. */
     public String getName() {
         return name;
     }
 
+    /** Returns the plan used by downstream billing behavior. */
     public PlanType getPlanType() {
         return planType;
     }
 
+    /** Returns the tenant lifecycle status for account-level checks. */
     public String getStatus() {
         return status;
     }
 
+    /** Returns the creation timestamp retained for auditing and reporting. */
     public Instant getCreatedAt() {
         return createdAt;
     }

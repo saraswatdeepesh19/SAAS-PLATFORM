@@ -14,6 +14,7 @@ public class SessionEndedConsumer {
         this.processingService = processingService;
     }
 
+    /** Delegates completed-session events to the transactional usage processor. */
     @KafkaListener(topics = Topics.USAGE_EVENTS, groupId = "usage-group")
     public void onMessage(SessionEndedEvent event) {
         processingService.process(event);

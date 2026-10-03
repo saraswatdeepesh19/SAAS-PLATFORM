@@ -18,6 +18,7 @@ public class UsageAggregatedPublisher {
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    /** Publishes updated totals only after the usage transaction commits. */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void publish(UsageAggregatedEvent event) {
         logger.info("Publishing usage aggregate eventId={} tenantId={} period={} sessions={}",

@@ -16,6 +16,10 @@ import org.springframework.web.server.ServerWebExchange;
 public class ServiceFallbackController {
         private static final Logger logger = LoggerFactory.getLogger(ServiceFallbackController.class);
 
+        /**
+         * Returns a traceable 503 response when a routed service is unavailable.
+         * This gives callers a consistent retry signal and context to investigate the failure.
+         */
     @RequestMapping("/{service}")
     public ResponseEntity<Map<String, Object>> serviceUnavailable(
             @PathVariable("service") String service, ServerWebExchange exchange) {

@@ -19,6 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfiguration {
+    /** Configures stateless JWT authorization and reserves invoice generation for tenant administrators. */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.disable())
@@ -31,6 +32,7 @@ public class SecurityConfiguration {
                 .build();
     }
 
+    /** Maps the issuer's existing role names directly so role checks match JWT authorities exactly. */
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
@@ -41,6 +43,7 @@ public class SecurityConfiguration {
         return converter;
     }
 
+    /** Creates a sufficiently long shared HS256 key so billing can verify auth-service tokens. */
     @Bean
     SecretKey jwtSecretKey(@Value("${security.jwt.secret}") String secret) {
         byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
@@ -50,6 +53,7 @@ public class SecurityConfiguration {
         return new SecretKeySpec(bytes, "HmacSHA256");
     }
 
+    /** Restricts JWT verification to HS256, the algorithm used by the token issuer. */
     @Bean
     JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
         return NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();

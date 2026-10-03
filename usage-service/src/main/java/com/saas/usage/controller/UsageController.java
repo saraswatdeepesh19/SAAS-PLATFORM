@@ -21,6 +21,7 @@ public class UsageController {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /** Returns a tenant-scoped monthly summary and zero totals when no usage has been recorded. */
     @GetMapping("/summary")
     public UsageSummaryResponse summary(@RequestParam("period") String period, @AuthenticationPrincipal Jwt jwt) {
         if (!period.matches("\\d{4}-(0[1-9]|1[0-2])")) {

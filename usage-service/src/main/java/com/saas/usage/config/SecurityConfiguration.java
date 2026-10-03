@@ -15,6 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfiguration {
+    /** Requires JWT authentication for usage data and keeps the service stateless for API clients. */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.disable())
@@ -25,6 +26,7 @@ public class SecurityConfiguration {
                 .build();
     }
 
+    /** Builds a validated shared key so this service can verify HS256 bearer tokens. */
     @Bean
     SecretKey jwtSecretKey(@Value("${security.jwt.secret}") String secret) {
         byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
@@ -34,6 +36,7 @@ public class SecurityConfiguration {
         return new SecretKeySpec(bytes, "HmacSHA256");
     }
 
+    /** Restricts token verification to the HS256 algorithm used by the auth service. */
     @Bean
     JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
         return NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();

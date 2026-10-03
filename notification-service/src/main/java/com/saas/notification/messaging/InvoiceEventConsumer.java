@@ -14,6 +14,7 @@ public class InvoiceEventConsumer {
         this.notificationService = notificationService;
     }
 
+    /** Delegates each invoice event to notification delivery handling. */
     @KafkaListener(topics = Topics.INVOICE_EVENTS, groupId = "notification-group")
     public void onInvoiceGenerated(InvoiceGeneratedEvent event) {
         notificationService.notify(event);

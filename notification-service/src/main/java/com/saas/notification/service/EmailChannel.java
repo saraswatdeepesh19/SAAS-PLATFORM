@@ -16,6 +16,7 @@ public class EmailChannel {
         this.fromAddress = fromAddress;
     }
 
+    /** Formats and sends the invoice email through the configured mail sender. */
     public void send(InvoiceGeneratedEvent event) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);

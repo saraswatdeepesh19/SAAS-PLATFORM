@@ -19,6 +19,10 @@ public class TenantRegisteredKafkaPublisher {
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    /**
+     * Publishes tenant registration only after its database transaction commits.
+     * This prevents consumers from acting on tenant data that was later rolled back.
+     */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void publish(TenantRegisteredEvent event) {
         try {

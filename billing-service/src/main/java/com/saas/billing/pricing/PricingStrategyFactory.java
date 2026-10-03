@@ -15,6 +15,7 @@ public class PricingStrategyFactory {
         strategies.forEach(strategy -> this.strategies.put(strategy.supports(), strategy));
     }
 
+    /** Selects the registered pricing rule for a plan so invoice generation remains plan-agnostic. */
     public PricingStrategy forPlan(PlanType planType) {
         PricingStrategy strategy = strategies.get(planType);
         if (strategy == null) {
